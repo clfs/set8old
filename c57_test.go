@@ -7,6 +7,14 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func HelperBigIntFromString(t *testing.T, s string) *big.Int {
+	n, ok := new(big.Int).SetString(s, 10)
+	if !ok {
+		t.Errorf("cannot convert to big.Int: %s", s)
+	}
+	return n
+}
+
 func TestPrimeFactorsLessThan(t *testing.T) {
 	t.Parallel()
 	cases := map[string]struct {
