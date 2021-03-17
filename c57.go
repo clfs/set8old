@@ -7,6 +7,8 @@ import (
 	"crypto/sha256"
 	"fmt"
 	"math/big"
+
+	"github.com/clfs/crt"
 )
 
 // C57BobClient is a client representing Bob for challenge 57.
@@ -86,7 +88,7 @@ func SubgroupConfinementAttack(p, g, q *big.Int, client *C57BobClient) (*big.Int
 	jFactors := PrimeFactorsLessThan(j, big.NewInt(65536))
 
 	// Set up the CRT pairs for the eventual Chinese Remainder Theorem.
-	var crtPairs []*CRTPair
+	var crtPairs []*crt.CRTPair
 
 	// Avoid allocating excess bigints in the for loop.
 	h := new(big.Int)
@@ -131,7 +133,7 @@ func SubgroupConfinementAttack(p, g, q *big.Int, client *C57BobClient) (*big.Int
 			// If the guess was correct, obtain a CRT pair and move on
 			// to the next factor of j.
 			if bytes.Equal(tag, response.Tag) {
-				crtPairs = append(crtPairs, &CRTPair{
+				crtPairs = append(crtPairs, &crt.CRTPair{
 					Remainder: new(big.Int).Set(i),
 					Divisor:   new(big.Int).Set(f),
 				})
@@ -140,7 +142,7 @@ func SubgroupConfinementAttack(p, g, q *big.Int, client *C57BobClient) (*big.Int
 		}
 	}
 
-	bobKey, err := CRT(crtPairs)
+	bobKey, err := crt.CRT(crtPairs)
 	if err != nil {
 		// CRT can fail if the divisors aren't pairwise coprime, but that should
 		// never happen, since all the divisors we chose were prime.
