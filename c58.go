@@ -68,17 +68,33 @@ func PollardsKangaroo(p, g, a, b, y *big.Int, pm *PollardMapper) (*big.Int, erro
 
 	// for i in [0, n)
 	for i := big.NewInt(0); i.Cmp(n) < 0; i.Add(i, one) {
+		// Compute f(yT) only once per iteration.
 		pm.F(&yT, tmp)
-		xT.Add(&xT, tmp)                // xT = xT + f(yT)
-		yT.Mul(&yT, tmp.Exp(g, tmp, p)) // yT = yT * g^f(yT)
+
+		// xT = xT + f(yT)
+		xT.Add(&xT, tmp)
+		xT.Mod(&xT, p)
+
+		// yT = yT * g^f(yT)
+		yT.Mul(&yT, tmp.Exp(g, tmp, p))
+		yT.Mod(&yT, p)
 	}
 
 	// while xW < b - a + xT
-	for xW.Cmp(tmp.Add(tmp.Sub(b, a), &xT)) < 0 {
+	forBound := tmp.Add(tmp.Sub(b, a), &xT)
+	for xW.Cmp(forBound) < 0 {
+		// Compute f(yW) only once per iteration.
 		pm.F(&yW, tmp)
-		xW.Add(&xW, tmp)                // xW = xW + f(yW)
-		yW.Mul(&yW, tmp.Exp(g, tmp, p)) // yW = yW * g^f(yW)
 
+		// xW = xW + f(yW)
+		xW.Add(&xW, tmp)
+		xW.Mod(&xW, p)
+
+		// yW = yW * g^f(yW)
+		yW.Mul(&yW, tmp.Exp(g, tmp, p))
+		yW.Mod(&yW, p)
+
+		// If wild y and tame y collide, success!
 		if yW.Cmp(&yT) == 0 {
 			return tmp.Sub(tmp.Add(b, &xT), &xW), nil // b + xT - xW
 		}
