@@ -8,6 +8,7 @@ import (
 )
 
 func HelperBigIntFromString(t *testing.T, s string) *big.Int {
+	t.Helper()
 	n, ok := new(big.Int).SetString(s, 10)
 	if !ok {
 		t.Errorf("cannot convert to big.Int: %s", s)
@@ -68,7 +69,9 @@ func TestPrimeFactorsLessThan(t *testing.T) {
 		},
 	}
 	for name, tc := range cases {
+		tc := tc
 		t.Run(name, func(t *testing.T) {
+			t.Parallel()
 			got := PrimeFactorsLessThan(tc.n, tc.bound)
 			assert.ElementsMatch(t, got, tc.want)
 		})
