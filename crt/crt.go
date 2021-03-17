@@ -5,32 +5,37 @@ import (
 	"math/big"
 )
 
-type CRTPair struct {
-	Remainder, Divisor *big.Int
+// One is a big.Int equal to 1.
+var One = big.NewInt(1)
+
+// Pair contains a remainder A and a divisor N.
+type Pair struct {
+	A, N *big.Int
 }
 
-// CRT is adapted from https://rosettacode.org/wiki/Chinese_remainder_theorem#Go
-func CRT(pairs []*CRTPair) (*big.Int, error) {
+// Do performs the CRT and stores the result in dst. It's adapted from
+// https://rosettacode.org/wiki/Chinese_remainder_theorem#Go.
+func Do(pairs []*Pair, dst *big.Int) error {
 	if len(pairs) == 0 {
-		return nil, fmt.Errorf("no pairs provided")
+		return fmt.Errorf("TODO no pairs provided")
 	}
 
-	one := big.NewInt(1)
-
-	p := new(big.Int).Set(pairs[0].Divisor)
-	for _, pair := range pairs[1:] {
-		p.Mul(p, pair.Divisor)
+	dst.Set(pairs[0].N)
+	for _, p := range pairs[1:] {
+		dst.Mul(dst, p.N)
 	}
 
 	var x, q, s, z big.Int
-	for _, pair := range pairs {
-		q.Div(p, pair.Divisor)
-		z.GCD(nil, &s, pair.Divisor, &q)
-		if z.Cmp(one) != 0 {
-			return nil, fmt.Errorf("not pairwise coprime with divisor %v", pair.Divisor)
+
+	for _, p := range pairs {
+		q.Div(dst, p.N)
+		z.GCD(nil, &s, p.N, &q)
+		if z.Cmp(One) != 0 {
+			return fmt.Errorf("TODO not pairwise coprime with divisor %v", p.N)
 		}
-		x.Add(&x, s.Mul(pair.Remainder, s.Mul(&s, &q)))
+		x.Add(&x, s.Mul(p.A, s.Mul(&s, &q)))
 	}
 
-	return x.Mod(&x, p), nil
+	dst.Mod(&x, dst)
+	return nil
 }
