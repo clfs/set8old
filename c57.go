@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/clfs/crt"
+	"github.com/clfs/set8/crt"
 )
 
 // C57BobClient is a client representing Bob for challenge 57.
