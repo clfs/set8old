@@ -11,39 +11,44 @@ import (
 	"github.com/clfs/set8/crt"
 )
 
-// C57BobClient is a client representing Bob for challenge 57.
-type C57BobClient struct {
-	key, p, g, q *big.Int
+// C57Bob represents Bob for challenge 57.
+type C57Bob struct {
+	p, g *big.Int
+	key  *big.Int
+	msg  []byte
 }
 
-// NewC57BobClient returns a queryable client representing Bob.
-func NewC57BobClient(p, g, q *big.Int) (*C57BobClient, error) {
+// NewC57Bob returns a new C57Bob.
+func NewC57Bob(p, g, q *big.Int) (*C57Bob, error) {
 	key, err := rand.Int(rand.Reader, q)
 	if err != nil {
 		return nil, err
 	}
-	return &C57BobClient{key: key, p: p, g: g, q: q}, nil
-}
-
-// Query accepts a "supposed" public key h without validation.
-// Bob computes a shared secret, and sends back a message
-// with a MAC.
-func (c *C57BobClient) Query(h *big.Int) (*TaggedMessage, error) {
-	sharedKey := new(big.Int).Exp(h, c.key, c.p)
-	msg := []byte("crazy flamboyant for the rap enjoyment")
-	tag, err := HMACSHA256(sharedKey, msg)
-	if err != nil {
-		return nil, err
-	}
-	return &TaggedMessage{
-		Message: msg,
-		Tag:     tag,
+	return &C57Bob{
+		p:   p,
+		g:   g,
+		key: key,
+		msg: []byte("crazy flamboyant for the rap enjoyment"),
 	}, nil
 }
 
+// Query accepts a public key without validating it.
+// Bob computes a shared secret and returns a message
+// and its MAC.
+func (c *C57Bob) Query(h *big.Int) ([]byte, []byte, error) {
+	sharedKey := new(big.Int).Exp(h, c.key, c.p)
+	tag, err := HMACSHA256(sharedKey.Bytes(), c.msg)
+	if err != nil {
+		return nil, nil, err
+	}
+	return c.msg, tag, nil
+}
+
 // HMACSHA256 computes the HMAC-SHA256 of a message under a key.
-func HMACSHA256(key *big.Int, msg []byte) ([]byte, error) {
-	mac := hmac.New(sha256.New, key.Bytes())
+// If you're signing lots of messages with the same key, don't
+// use this - it'll be inefficient.
+func HMACSHA256(key, msg []byte) ([]byte, error) {
+	mac := hmac.New(sha256.New, key)
 	_, err := mac.Write(msg)
 	if err != nil {
 		return nil, err
@@ -78,7 +83,7 @@ func PrimeFactorsLessThan(n, bound *big.Int) []*big.Int {
 
 // SubgroupConfinementAttack recovers Bob's secret key in a DHKE scheme, by way
 // of the Pohlig-Hellman algorithm for discrete logarithms.
-func SubgroupConfinementAttack(p, g, q *big.Int, client *C57BobClient) (*big.Int, error) {
+func SubgroupConfinementAttack(p, g, q *big.Int, bob *C57Bob) (*big.Int, error) {
 	// Define some constants in advance.
 	one := big.NewInt(1)
 
@@ -118,7 +123,7 @@ func SubgroupConfinementAttack(p, g, q *big.Int, client *C57BobClient) (*big.Int
 		}
 
 		// Query Bob with h.
-		response, err := client.Query(h)
+		msg, tag, err := bob.Query(h)
 		if err != nil {
 			return nil, err
 		}
@@ -126,13 +131,13 @@ func SubgroupConfinementAttack(p, g, q *big.Int, client *C57BobClient) (*big.Int
 		// Brute-force Bob's secret key mod f.
 		for i := big.NewInt(0); i.Cmp(f) < 0; i.Add(i, one) {
 			// Make a guess.
-			tag, err := HMACSHA256(tmp.Exp(h, i, p), response.Message)
+			guess, err := HMACSHA256(tmp.Exp(h, i, p).Bytes(), msg)
 			if err != nil {
 				return nil, err
 			}
 			// If the guess was correct, obtain a CRT pair and move on
 			// to the next factor of j.
-			if bytes.Equal(tag, response.Tag) {
+			if bytes.Equal(guess, tag) {
 				crtPairs = append(crtPairs, &crt.Pair{
 					A: new(big.Int).Set(i),
 					N: new(big.Int).Set(f),

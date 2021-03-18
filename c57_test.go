@@ -120,7 +120,7 @@ func TestSubgroupConfinementAttack(t *testing.T) {
 	if !ok {
 		t.Error("failed to create q")
 	}
-	client, err := NewC57BobClient(p, g, q)
+	client, err := NewC57Bob(p, g, q)
 	if err != nil {
 		t.Errorf("failed to create Bob client: %v", err)
 	}
