@@ -14,10 +14,11 @@ type Pair struct {
 }
 
 // Do performs the CRT and stores the result in dst. It's adapted from
-// https://rosettacode.org/wiki/Chinese_remainder_theorem#Go.
+// https://rosettacode.org/wiki/Chinese_remainder_theorem#Go. It fails
+// if any two divisors are not coprime.
 func Do(pairs []*Pair, dst *big.Int) error {
 	if len(pairs) == 0 {
-		return fmt.Errorf("TODO no pairs provided")
+		return fmt.Errorf("no pairs provided")
 	}
 
 	dst.Set(pairs[0].N)
@@ -31,7 +32,7 @@ func Do(pairs []*Pair, dst *big.Int) error {
 		q.Div(dst, p.N)
 		z.GCD(nil, &s, p.N, &q)
 		if z.Cmp(One) != 0 {
-			return fmt.Errorf("TODO not pairwise coprime with divisor %v", p.N)
+			return fmt.Errorf("divisor %d not coprime with other divisors", p.N)
 		}
 		x.Add(&x, s.Mul(p.A, s.Mul(&s, &q)))
 	}

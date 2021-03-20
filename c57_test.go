@@ -80,11 +80,8 @@ func TestPrimeFactorsLessThan(t *testing.T) {
 
 func TestPrimeFactorsLessThan_Large(t *testing.T) {
 	t.Parallel()
-	// This test uses the actual j parameter.
-	n, ok := new(big.Int).SetString("30477252323177606811760882179058908038824640750610513771646768011063128035873508507547741559514324673960576895059570", 10)
-	if !ok {
-		t.Error("failed to create n")
-	}
+	// This test uses the j parameter from challenge 57.
+	j := HelperBigIntFromString(t, "30477252323177606811760882179058908038824640750610513771646768011063128035873508507547741559514324673960576895059570")
 	bound := big.NewInt(65536) // 2^16
 	want := []*big.Int{
 		big.NewInt(2),
@@ -101,31 +98,23 @@ func TestPrimeFactorsLessThan_Large(t *testing.T) {
 		big.NewInt(54319),
 		big.NewInt(57529),
 	}
-	got := PrimeFactorsLessThan(n, bound)
+	got := PrimeFactorsLessThan(j, bound)
 	assert.ElementsMatch(t, got, want)
 }
 
 func TestSubgroupConfinementAttack(t *testing.T) {
 	t.Parallel()
 
-	p, ok := new(big.Int).SetString("7199773997391911030609999317773941274322764333428698921736339643928346453700085358802973900485592910475480089726140708102474957429903531369589969318716771", 10)
-	if !ok {
-		t.Error("failed to create p")
-	}
-	g, ok := new(big.Int).SetString("4565356397095740655436854503483826832136106141639563487732438195343690437606117828318042418238184896212352329118608100083187535033402010599512641674644143", 10)
-	if !ok {
-		t.Error("failed to create g")
-	}
-	q, ok := new(big.Int).SetString("236234353446506858198510045061214171961", 10)
-	if !ok {
-		t.Error("failed to create q")
-	}
+	p := HelperBigIntFromString(t, "7199773997391911030609999317773941274322764333428698921736339643928346453700085358802973900485592910475480089726140708102474957429903531369589969318716771")
+	g := HelperBigIntFromString(t, "4565356397095740655436854503483826832136106141639563487732438195343690437606117828318042418238184896212352329118608100083187535033402010599512641674644143")
+	q := HelperBigIntFromString(t, "236234353446506858198510045061214171961")
 	bob, err := NewC57Bob(p, g, q)
 	if err != nil {
 		t.Errorf("failed to create Bob client: %v", err)
 	}
-	got := new(big.Int)
-	if err := SubgroupConfinementAttack(bob, p, g, q, got); err != nil {
+
+	var got big.Int
+	if err := SubgroupConfinementAttack(bob, p, g, q, &got); err != nil {
 		t.Errorf("failed to find Bob key: %v", err)
 	}
 	if got.Cmp(bob.key) != 0 {

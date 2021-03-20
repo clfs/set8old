@@ -11,6 +11,12 @@ func TestDo(t *testing.T) {
 		pairs []*Pair
 		want  *big.Int
 	}{
+		"one pair": {
+			pairs: []*Pair{
+				{A: big.NewInt(3), N: big.NewInt(5)},
+			},
+			want: big.NewInt(3),
+		},
 		"two pairs": {
 			pairs: []*Pair{
 				{A: big.NewInt(1), N: big.NewInt(5)},
