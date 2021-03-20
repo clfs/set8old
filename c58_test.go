@@ -3,6 +3,9 @@ package set8
 import "testing"
 
 func TestPollardsKangaroo(t *testing.T) {
+	if testing.Short() {
+		t.SkipNow()
+	}
 	t.Parallel()
 	cases := map[string]struct {
 		// Pollard's Kangaroo inputs

@@ -58,22 +58,20 @@ func HMACSHA256(key, msg []byte) ([]byte, error) {
 
 // PrimeFactorsLessThan returns all prime factors of n that are less
 // than bound. It returns nil if either n or bound is non-positive.
-// It's fully unoptimized, so try to use a small bound (< 1 million).
+// It's unoptimized, so try to use a small bound (< 1 million).
 func PrimeFactorsLessThan(n, bound *big.Int) []*big.Int {
 	if n.Sign() < 1 || bound.Sign() < 1 {
 		return nil
 	}
 
-	var res []*big.Int
+	var (
+		res []*big.Int
+		tmp big.Int
+	)
 
-	one := big.NewInt(1)
-	var tmp big.Int
-
-	// for f in [1, bound)
-	for f := big.NewInt(1); f.Cmp(bound) < 0; f.Add(f, one) {
-		// if n divisible by f AND f is prime
+	for f := big.NewInt(1); f.Cmp(bound) < 0; f.Add(f, big1) {
+		// if n divisible by f AND f is prime, then save it
 		if tmp.Mod(n, f).Sign() == 0 && f.ProbablyPrime(1) {
-			// save a copy of f
 			res = append(res, new(big.Int).Set(f))
 		}
 	}
@@ -84,12 +82,9 @@ func PrimeFactorsLessThan(n, bound *big.Int) []*big.Int {
 // SubgroupConfinementAttack recovers Bob's secret key in a DHKE scheme, by way
 // of the Pohlig-Hellman algorithm for discrete logarithms.
 func SubgroupConfinementAttack(p, g, q *big.Int, bob *C57Bob) (*big.Int, error) {
-	// Define some constants in advance.
-	one := big.NewInt(1)
-
 	// Compute j and its factors.
-	j := new(big.Int).Sub(p, one) // p - 1
-	j.Div(j, q)                   // (p - 1) // q
+	j := new(big.Int).Sub(p, big1) // p - 1
+	j.Div(j, q)                    // (p - 1) // q
 	jFactors := PrimeFactorsLessThan(j, big.NewInt(65536))
 
 	// Set up the CRT pairs for the eventual Chinese Remainder Theorem.
@@ -106,18 +101,18 @@ func SubgroupConfinementAttack(p, g, q *big.Int, bob *C57Bob) (*big.Int, error) 
 		// Find an element h of order f.
 		for {
 			// Generate a random integer in [1, p).
-			rnd, err := rand.Int(rand.Reader, tmp.Sub(p, one)) // [0, p-1)
+			rnd, err := rand.Int(rand.Reader, tmp.Sub(p, big1)) // [0, p-1)
 			if err != nil {
 				return nil, err
 			}
-			rnd.Add(one, rnd) // [0, p-1) becomes [1, p)
+			rnd.Add(big1, rnd) // [0, p-1) becomes [1, p)
 
 			// Compute h.
-			tmp.Div(tmp.Sub(p, one), f) // (p - 1) // f
+			tmp.Div(tmp.Sub(p, big1), f) // (p - 1) // f
 			h.Exp(rnd, tmp, p)
 
 			// Retry if h is 1.
-			if h.Cmp(one) != 0 {
+			if h.Cmp(big1) != 0 {
 				break
 			}
 		}
@@ -129,7 +124,7 @@ func SubgroupConfinementAttack(p, g, q *big.Int, bob *C57Bob) (*big.Int, error) 
 		}
 
 		// Brute-force Bob's secret key mod f.
-		for i := big.NewInt(0); i.Cmp(f) < 0; i.Add(i, one) {
+		for i := big.NewInt(0); i.Cmp(f) < 0; i.Add(i, big1) {
 			// Make a guess.
 			guess, err := HMACSHA256(tmp.Exp(h, i, p).Bytes(), msg)
 			if err != nil {
