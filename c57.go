@@ -111,7 +111,7 @@ func SubgroupConfinementAttack(bob *C57Bob, p, g, q, dst *big.Int) error {
 		// Query Bob.
 		msg, tag, err := bob.Query(&h)
 		if err != nil {
-			return nil
+			return err
 		}
 
 		// Brute-force Bob's secret key mod f.
