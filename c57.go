@@ -80,73 +80,62 @@ func PrimeFactorsLessThan(n, bound *big.Int) []*big.Int {
 }
 
 // SubgroupConfinementAttack recovers Bob's secret key in a DHKE scheme, by way
-// of the Pohlig-Hellman algorithm for discrete logarithms.
-func SubgroupConfinementAttack(p, g, q *big.Int, bob *C57Bob) (*big.Int, error) {
-	// Compute j and its factors.
-	j := new(big.Int).Sub(p, big1) // p - 1
-	j.Div(j, q)                    // (p - 1) // q
-	jFactors := PrimeFactorsLessThan(j, big.NewInt(65536))
+// of the Pohlig-Hellman algorithm for discrete logarithms. The result is stored
+// in dst.
+func SubgroupConfinementAttack(bob *C57Bob, p, g, q, dst *big.Int) error {
+	var (
+		// Invalid public key to force subgroups.
+		h big.Int
+		// We'll need this for the CRT step.
+		crtPairs []*crt.Pair
+	)
 
-	// Set up the CRT pairs for the eventual Chinese Remainder Theorem.
-	var crtPairs []*crt.Pair
-
-	// Avoid allocating excess bigints in the for loop.
-	h := new(big.Int)
-	tmp := new(big.Int)
-
-	// It's possible to stop early if the product of the remainders is greater
-	// than q, but I'm too lazy to write that check. Instead, every factor is
-	// used.
-	for _, f := range jFactors {
-		// Find an element h of order f.
+	dst.Div(dst.Sub(p, big1), q) // j, or (p - 1) // q
+	jFactors := PrimeFactorsLessThan(dst, big65536)
+	for _, n := range jFactors {
+		// Pick an element h of order f.
 		for {
-			// Generate a random integer in [1, p).
-			rnd, err := rand.Int(rand.Reader, tmp.Sub(p, big1)) // [0, p-1)
+			rnd, err := rand.Int(rand.Reader, dst.Sub(p, big1)) // [0, p-1)
 			if err != nil {
-				return nil, err
+				return err
 			}
-			rnd.Add(big1, rnd) // [0, p-1) becomes [1, p)
+			rnd.Add(rnd, big1) // [1, p)
 
-			// Compute h.
-			tmp.Div(tmp.Sub(p, big1), f) // (p - 1) // f
-			h.Exp(rnd, tmp, p)
-
-			// Retry if h is 1.
+			// Try to pick h != 1.
+			h.Exp(rnd, dst.Div(dst.Sub(p, big1), n), p)
 			if h.Cmp(big1) != 0 {
 				break
 			}
 		}
 
-		// Query Bob with h.
-		msg, tag, err := bob.Query(h)
+		// Query Bob.
+		msg, tag, err := bob.Query(&h)
 		if err != nil {
-			return nil, err
+			return nil
 		}
 
 		// Brute-force Bob's secret key mod f.
-		for i := big.NewInt(0); i.Cmp(f) < 0; i.Add(i, big1) {
-			// Make a guess.
-			guess, err := HMACSHA256(tmp.Exp(h, i, p).Bytes(), msg)
+		for a := big.NewInt(0); a.Cmp(n) < 0; a.Add(a, big1) {
+			guess, err := HMACSHA256(dst.Exp(&h, a, p).Bytes(), msg)
 			if err != nil {
-				return nil, err
+				return err
 			}
-			// If the guess was correct, obtain a CRT pair and move on
-			// to the next factor of j.
+			// No need for hmac.Equal since we're the attacker.
 			if bytes.Equal(guess, tag) {
 				crtPairs = append(crtPairs, &crt.Pair{
-					A: new(big.Int).Set(i),
-					N: new(big.Int).Set(f),
+					A: new(big.Int).Set(a),
+					N: new(big.Int).Set(n),
 				})
 				break
 			}
 		}
 	}
 
-	err := crt.Do(crtPairs, tmp)
+	err := crt.Do(crtPairs, dst)
 	if err != nil {
-		// CRT can fail if the divisors aren't pairwise coprime, but that should
-		// never happen, since all the divisors we chose were prime.
-		return nil, fmt.Errorf("this should never happen")
+		// CRT can fail if there are no pairs, or if the divisors aren't
+		// pairwise coprime. Neither of these apply here.
+		return fmt.Errorf("this should never happen")
 	}
-	return tmp, nil
+	return nil
 }

@@ -120,15 +120,15 @@ func TestSubgroupConfinementAttack(t *testing.T) {
 	if !ok {
 		t.Error("failed to create q")
 	}
-	client, err := NewC57Bob(p, g, q)
+	bob, err := NewC57Bob(p, g, q)
 	if err != nil {
 		t.Errorf("failed to create Bob client: %v", err)
 	}
-	key, err := SubgroupConfinementAttack(p, g, q, client)
-	if err != nil {
+	got := new(big.Int)
+	if err := SubgroupConfinementAttack(bob, p, g, q, got); err != nil {
 		t.Errorf("failed to find Bob key: %v", err)
 	}
-	if key.Cmp(client.key) != 0 {
-		t.Errorf("incorrect key: got %v, want %v", key, client.key)
+	if got.Cmp(bob.key) != 0 {
+		t.Errorf("incorrect key: got %v, want %v", got, bob.key)
 	}
 }
