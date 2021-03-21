@@ -5,6 +5,18 @@ import (
 	"testing"
 )
 
+func BenchmarkDo(b *testing.B) {
+	var dst big.Int
+	pairs := []*Pair{
+		{A: big.NewInt(2), N: big.NewInt(3)},
+		{A: big.NewInt(3), N: big.NewInt(4)},
+		{A: big.NewInt(1), N: big.NewInt(5)},
+	}
+	for i := 0; i < b.N; i++ {
+		_ = Do(pairs, &dst)
+	}
+}
+
 func TestDo(t *testing.T) {
 	t.Parallel()
 	cases := map[string]struct {
