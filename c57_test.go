@@ -7,11 +7,11 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func HelperBigIntFromString(t *testing.T, s string) *big.Int {
-	t.Helper()
+func HelperBigIntFromString(tb testing.TB, s string) *big.Int {
+	tb.Helper()
 	n, ok := new(big.Int).SetString(s, 10)
 	if !ok {
-		t.Errorf("cannot convert to big.Int: %s", s)
+		tb.Errorf("cannot convert to big.Int: %s", s)
 	}
 	return n
 }
@@ -104,7 +104,6 @@ func TestPrimeFactorsLessThan_Large(t *testing.T) {
 
 func TestSubgroupConfinementAttack(t *testing.T) {
 	t.Parallel()
-
 	p := HelperBigIntFromString(t, "7199773997391911030609999317773941274322764333428698921736339643928346453700085358802973900485592910475480089726140708102474957429903531369589969318716771")
 	g := HelperBigIntFromString(t, "4565356397095740655436854503483826832136106141639563487732438195343690437606117828318042418238184896212352329118608100083187535033402010599512641674644143")
 	q := HelperBigIntFromString(t, "236234353446506858198510045061214171961")
@@ -115,7 +114,7 @@ func TestSubgroupConfinementAttack(t *testing.T) {
 
 	var got big.Int
 	if err := SubgroupConfinementAttack(bob, p, g, q, &got); err != nil {
-		t.Errorf("failed to find Bob key: %v", err)
+		t.Fatalf("failed to find Bob key: %v", err)
 	}
 	if got.Cmp(bob.key) != 0 {
 		t.Errorf("incorrect key: got %v, want %v", got, bob.key)

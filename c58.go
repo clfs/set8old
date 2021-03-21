@@ -72,12 +72,10 @@ func PollardsKangaroo(p, g, a, b, y *big.Int, pm *PollardMapper) (*big.Int, erro
 		pm.F(&yT, tmp)
 
 		// xT = xT + f(yT)
-		xT.Add(&xT, tmp)
-		xT.Mod(&xT, p)
+		xT.Add(&xT, tmp).Mod(&xT, p)
 
 		// yT = yT * g^f(yT)
-		yT.Mul(&yT, tmp.Exp(g, tmp, p))
-		yT.Mod(&yT, p)
+		yT.Mul(&yT, tmp.Exp(g, tmp, p)).Mod(&yT, p)
 	}
 
 	// while xW < b - a + xT
@@ -87,12 +85,10 @@ func PollardsKangaroo(p, g, a, b, y *big.Int, pm *PollardMapper) (*big.Int, erro
 		pm.F(&yW, tmp)
 
 		// xW = xW + f(yW)
-		xW.Add(&xW, tmp)
-		xW.Mod(&xW, p)
+		xW.Add(&xW, tmp).Mod(&xW, p)
 
 		// yW = yW * g^f(yW)
-		yW.Mul(&yW, tmp.Exp(g, tmp, p))
-		yW.Mod(&yW, p)
+		yW.Mul(&yW, tmp.Exp(g, tmp, p)).Mod(&yW, p)
 
 		// If wild y and tame y collide, success!
 		if yW.Cmp(&yT) == 0 {
