@@ -11,8 +11,8 @@ func BenchmarkPollardsKangaroo(b *testing.B) {
 	a := HelperBigIntFromString(b, "0")
 	bb := HelperBigIntFromString(b, "1048576") // 2^20
 	y := HelperBigIntFromString(b, "7760073848032689505395005705677365876654629189298052775754597607446617558600394076764814236081991643094239886772481052254010323780165093955236429914607119")
-	c := HelperBigIntFromString(b, "4")
-	k := HelperBigIntFromString(b, "10")
+	c := HelperBigIntFromString(b, "3")
+	k := HelperBigIntFromString(b, "11")
 	pm, err := NewPollardMapper(k, c, p)
 	if err != nil {
 		b.Fatalf("failed to create Pollard mapper: %v", err)
