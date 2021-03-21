@@ -16,6 +16,16 @@ func HelperBigIntFromString(tb testing.TB, s string) *big.Int {
 	return n
 }
 
+func BenchmarkPrimeFactorsLessThan(b *testing.B) {
+	// This benchmark uses the j parameter from challenge 57.
+	j := HelperBigIntFromString(b, "30477252323177606811760882179058908038824640750610513771646768011063128035873508507547741559514324673960576895059570")
+	bound := big.NewInt(65536) // 2^16
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_ = PrimeFactorsLessThan(j, bound)
+	}
+}
+
 func TestPrimeFactorsLessThan(t *testing.T) {
 	t.Parallel()
 	cases := map[string]struct {
