@@ -6,95 +6,73 @@ import (
 )
 
 type PollardMapper struct {
-	// Constants
 	k, c, p *big.Int
-	// Temporary storage for 2
-	two *big.Int
 }
 
 func NewPollardMapper(k, c, p *big.Int) (*PollardMapper, error) {
 	if k.Sign() != 1 || c.Sign() != 1 || p.Sign() != 1 {
 		return nil, fmt.Errorf("k, c, p must be positive: %v, %v, %v", k, c, p)
 	}
-	return &PollardMapper{k: k, c: c, p: p, two: big.NewInt(2)}, nil
+	return &PollardMapper{k: k, c: c, p: p}, nil
 }
 
 func (p PollardMapper) F(y, dst *big.Int) {
-	dst.Exp(p.two, dst.Mod(y, p.k), p.p) // dst = 2^(y mod k) mod p
+	dst.Exp(big2, dst.Mod(y, p.k), p.p) // dst = 2^(y mod k) mod p
 }
 
-func (p PollardMapper) N() *big.Int {
-	// No need to go hard on pre-allocating, since this isn't a hot path.
-	tmp := big.NewInt(0)
-	one := big.NewInt(1)
-
+func (p PollardMapper) N(dst *big.Int) {
 	// Will hold all possible outputs of F.
-	seen := make([]*big.Int, 0)
-	// for i in [0, k)
-	for i := big.NewInt(0); i.Cmp(p.k) < 0; i.Add(i, one) {
-		// seen[i] = F(i)
-		p.F(i, tmp)
-		seen = append(seen, new(big.Int).Set(tmp))
+	seen := make([]*big.Int, 0, p.k.Int64())
+	for i := big.NewInt(0); i.Cmp(p.k) < 0; i.Add(i, big1) {
+		p.F(i, dst)
+		seen = append(seen, new(big.Int).Set(dst))
 	}
 
-	// Compute N.
-	tmp.SetInt64(0)
+	// Compute N = mean(seen) * c.
+	dst.SetInt64(0)
 	for _, s := range seen {
-		tmp.Add(tmp, s)
+		dst.Add(dst, s)
 	}
-	count := big.NewInt(int64(len(seen)))    // len(seen) is never 0
-	return tmp.Mul(tmp.Div(tmp, count), p.c) // mean(seen) * c
+	dst.Mul(dst.Div(dst, p.k), p.c)
 }
 
-func PollardsKangaroo(p, g, a, b, y *big.Int, pm *PollardMapper) (*big.Int, error) {
+func PollardsKangaroo(pm *PollardMapper, p, g, a, b, y, dst *big.Int) error {
 	var (
 		// Tame kangaroo
 		xT, yT big.Int
 		// Wild kangaroo
 		xW, yW big.Int
-		// Temporary storage
-		tmp = big.NewInt(0)
-		// Constants
-		one = big.NewInt(1)
+		// N value for the mapper
+		n big.Int
 	)
 
-	// TODO set n correctly.
-	n := pm.N()
+	// Set N.
+	pm.N(&n)
 
 	xT.SetInt64(0)  // xT = 0
 	yT.Exp(g, b, p) // yT = g^b
 	xW.SetInt64(0)  // xW = 0
 	yW.Set(y)       // yW = y
 
-	// for i in [0, n)
-	for i := big.NewInt(0); i.Cmp(n) < 0; i.Add(i, one) {
-		// Compute f(yT) only once per iteration.
-		pm.F(&yT, tmp)
-
-		// xT = xT + f(yT)
-		xT.Add(&xT, tmp).Mod(&xT, p)
-
-		// yT = yT * g^f(yT)
-		yT.Mul(&yT, tmp.Exp(g, tmp, p)).Mod(&yT, p)
+	for i := big.NewInt(0); i.Cmp(&n) < 0; i.Add(i, big1) {
+		pm.F(&yT, dst)                              // Compute f(yT) only once per iteration.
+		xT.Add(&xT, dst).Mod(&xT, p)                // xT = xT + f(yT)
+		yT.Mul(&yT, dst.Exp(g, dst, p)).Mod(&yT, p) // yT = yT * g^f(yT)
 	}
 
 	// while xW < b - a + xT
-	forBound := tmp.Add(tmp.Sub(b, a), &xT)
+	forBound := dst.Add(dst.Sub(b, a), &xT)
 	for xW.Cmp(forBound) < 0 {
-		// Compute f(yW) only once per iteration.
-		pm.F(&yW, tmp)
-
-		// xW = xW + f(yW)
-		xW.Add(&xW, tmp).Mod(&xW, p)
-
-		// yW = yW * g^f(yW)
-		yW.Mul(&yW, tmp.Exp(g, tmp, p)).Mod(&yW, p)
+		pm.F(&yW, dst)                              // Compute f(yW) only once per iteration.
+		xW.Add(&xW, dst).Mod(&xW, p)                // xW = xW + f(yW)
+		yW.Mul(&yW, dst.Exp(g, dst, p)).Mod(&yW, p) // yW = yW * g^f(yW)
 
 		// If wild y and tame y collide, success!
 		if yW.Cmp(&yT) == 0 {
-			return tmp.Sub(tmp.Add(b, &xT), &xW), nil // b + xT - xW
+			dst.Sub(dst.Add(b, &xT), &xW) // b + xT - xW
+			return nil
 		}
 	}
 
-	return nil, fmt.Errorf("no index found")
+	return fmt.Errorf("no index found")
 }

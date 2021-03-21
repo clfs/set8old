@@ -17,10 +17,11 @@ func BenchmarkPollardsKangaroo(b *testing.B) {
 	if err != nil {
 		b.Fatalf("failed to create Pollard mapper: %v", err)
 	}
+	var dst big.Int
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_, _ = PollardsKangaroo(p, g, a, bb, y, pm)
+		_ = PollardsKangaroo(pm, p, g, a, bb, y, &dst)
 	}
 }
 
@@ -81,13 +82,13 @@ func TestPollardsKangaroo(t *testing.T) {
 			}
 
 			// Can we compute the index of y?
-			got, err := PollardsKangaroo(p, g, a, b, y, pm)
-			if err != nil {
+			var got big.Int
+			if err := PollardsKangaroo(pm, p, g, a, b, y, &got); err != nil {
 				t.Fatalf("failed to find index of y: %v", err)
 			}
 
 			// Was the index of y correct?
-			if new(big.Int).Exp(g, got, p).Cmp(y) != 0 {
+			if new(big.Int).Exp(g, &got, p).Cmp(y) != 0 {
 				t.Errorf("incorrect index: %v", got)
 			}
 
