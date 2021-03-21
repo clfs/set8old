@@ -36,7 +36,7 @@ func (p PollardMapper) N(dst *big.Int) {
 	dst.Mul(dst.Div(dst, p.k), p.c)
 }
 
-func PollardsKangaroo(pm *PollardMapper, p, g, a, b, y, dst *big.Int) error {
+func PollardsKangaroo(pm *PollardMapper, p, g, a, b, y *big.Int) (*big.Int, error) {
 	var (
 		// Tame kangaroo
 		xT, yT big.Int
@@ -44,9 +44,10 @@ func PollardsKangaroo(pm *PollardMapper, p, g, a, b, y, dst *big.Int) error {
 		xW, yW big.Int
 		// N value for the mapper
 		n big.Int
+		// Temporary values
+		t1, t2 big.Int
 	)
 
-	// Set N.
 	pm.N(&n)
 
 	xT.SetInt64(0)  // xT = 0
@@ -55,24 +56,35 @@ func PollardsKangaroo(pm *PollardMapper, p, g, a, b, y, dst *big.Int) error {
 	yW.Set(y)       // yW = y
 
 	for i := big.NewInt(0); i.Cmp(&n) < 0; i.Add(i, big1) {
-		pm.F(&yT, dst)                              // Compute f(yT) only once per iteration.
-		xT.Add(&xT, dst).Mod(&xT, p)                // xT = xT + f(yT)
-		yT.Mul(&yT, dst.Exp(g, dst, p)).Mod(&yT, p) // yT = yT * g^f(yT)
+		pm.F(&yT, &t1) // Compute f(yT) only once.
+
+		t2.Add(&xT, &t1)
+		xT.Mod(&t2, p) // xT = xT + f(yT)
+
+		t2.Exp(g, &t1, p)
+		t1.Mul(&yT, &t2)
+		yT.Mod(&t1, p) // yT = yT * g^f(yT)
 	}
 
-	// while xW < b - a + xT
-	forBound := dst.Add(dst.Sub(b, a), &xT)
+	t1.Sub(b, a)
+	forBound := t2.Add(&t1, &xT) // b - a + xT
+
 	for xW.Cmp(forBound) < 0 {
-		pm.F(&yW, dst)                              // Compute f(yW) only once per iteration.
-		xW.Add(&xW, dst).Mod(&xW, p)                // xW = xW + f(yW)
-		yW.Mul(&yW, dst.Exp(g, dst, p)).Mod(&yW, p) // yW = yW * g^f(yW)
+		pm.F(&yW, &t1) // Compute f(yW) only once.
+
+		t2.Add(&xW, &t1)
+		xW.Mod(&t2, p) // xW = xW + f(yW)
+
+		t2.Exp(g, &t1, p)
+		t1.Mul(&yW, &t2)
+		yW.Mod(&t1, p) // yW = yW * g^f(yW)
 
 		// If wild y and tame y collide, success!
 		if yW.Cmp(&yT) == 0 {
-			dst.Sub(dst.Add(b, &xT), &xW) // b + xT - xW
-			return nil
+			t1.Add(b, &xT)
+			return t2.Sub(&t1, &xW), nil // b + xT - xW
 		}
 	}
 
-	return fmt.Errorf("no index found")
+	return nil, fmt.Errorf("no index found")
 }
