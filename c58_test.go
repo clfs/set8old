@@ -36,21 +36,36 @@ var testCasesPollardsKangaroo = map[string]struct {
 }
 
 func BenchmarkPollardsKangaroo(b *testing.B) {
-	p := HelperBigIntFromString(b, testCasesPollardsKangaroo["small"].p)
-	g := HelperBigIntFromString(b, testCasesPollardsKangaroo["small"].g)
-	a := HelperBigIntFromString(b, testCasesPollardsKangaroo["small"].a)
-	b_ := HelperBigIntFromString(b, testCasesPollardsKangaroo["small"].b)
-	y := HelperBigIntFromString(b, testCasesPollardsKangaroo["small"].y)
-	c := HelperBigIntFromString(b, testCasesPollardsKangaroo["small"].c)
-	k := HelperBigIntFromString(b, testCasesPollardsKangaroo["small"].k)
-	pm, err := NewPollardMapper(k, c, p)
-	if err != nil {
-		b.Fatalf("failed to create Pollard mapper: %v", err)
-	}
+	var (
+		p  = HelperBigIntFromString(b, testCasesPollardsKangaroo["small"].p)
+		g  = HelperBigIntFromString(b, testCasesPollardsKangaroo["small"].g)
+		a  = HelperBigIntFromString(b, testCasesPollardsKangaroo["small"].a)
+		bb = HelperBigIntFromString(b, testCasesPollardsKangaroo["small"].b)
+		y  = HelperBigIntFromString(b, testCasesPollardsKangaroo["small"].y)
+		c  = HelperBigIntFromString(b, testCasesPollardsKangaroo["small"].c)
+		k  = HelperBigIntFromString(b, testCasesPollardsKangaroo["small"].k)
+		pm = NewPollardMapper(k, c, p)
+	)
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_, _ = PollardsKangaroo(pm, p, g, a, b_, y)
+		_, _ = PollardsKangaroo(pm, p, g, a, bb, y)
+	}
+}
+
+func BenchmarkPollardMapper_F(b *testing.B) {
+	var (
+		k = HelperBigIntFromString(b, testCasesPollardsKangaroo["small"].k)
+		c = HelperBigIntFromString(b, testCasesPollardsKangaroo["small"].c)
+		p = HelperBigIntFromString(b, testCasesPollardsKangaroo["small"].p)
+		y = HelperBigIntFromString(b, testCasesPollardsKangaroo["small"].y)
+		m = NewPollardMapper(k, c, p)
+		t big.Int
+	)
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		m.F(&t, y)
 	}
 }
 
@@ -72,13 +87,8 @@ func TestPollardsKangaroo(t *testing.T) {
 				c    = HelperBigIntFromString(t, tc.c)
 				k    = HelperBigIntFromString(t, tc.k)
 				want = HelperBigIntFromString(t, tc.want)
+				pm   = NewPollardMapper(k, c, p)
 			)
-
-			// Can we create the Pollard mapper?
-			pm, err := NewPollardMapper(k, c, p)
-			if err != nil {
-				t.Fatalf("failed to create Pollard mapper: %v", err)
-			}
 
 			// Can we compute the index of y?
 			got, err := PollardsKangaroo(pm, p, g, a, b, y)

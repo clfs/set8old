@@ -5,28 +5,26 @@ import (
 	"math/big"
 )
 
+// PollardMapper represents a map from [0, k) to [1, p).
 type PollardMapper struct {
-	// Provided constants
-	k, c, p *big.Int
-	// Pre-allocation
-	tmp *big.Int
+	k, c, p *big.Int // Provided constants
+	tmp     *big.Int // Pre-allocation
 }
 
-func NewPollardMapper(k, c, p *big.Int) (*PollardMapper, error) {
-	if k.Sign() != 1 || c.Sign() != 1 || p.Sign() != 1 {
-		return nil, fmt.Errorf("k, c, p must be positive: %v, %v, %v", k, c, p)
-	}
-	return &PollardMapper{k: k, c: c, p: p, tmp: new(big.Int)}, nil
+// NewPollardMapper returns a new PollardMapper.
+func NewPollardMapper(k, c, p *big.Int) *PollardMapper {
+	return &PollardMapper{k: k, c: c, p: p, tmp: new(big.Int)}
 }
 
+// F sets dst to 2^(y mod k) mod p.
 func (p PollardMapper) F(y, dst *big.Int) {
-	// Skip the mod p as an optimization.
-	dst.Exp(big2, p.tmp.Mod(y, p.k), nil) // dst = 2^(y mod k) mod p
+	p.tmp.Mod(y, p.k)
+	dst.Exp(big2, p.tmp, nil) // Skip the mod p as an optimization.
 }
 
 func (p PollardMapper) N(dst *big.Int) {
 	// Will hold all possible outputs of F.
-	seen := make([]*big.Int, 0, p.k.Int64())
+	seen := make([]*big.Int, 0)
 	for i := big.NewInt(0); i.Cmp(p.k) < 0; i.Add(i, big1) {
 		p.F(i, dst)
 		seen = append(seen, new(big.Int).Set(dst))
@@ -37,7 +35,8 @@ func (p PollardMapper) N(dst *big.Int) {
 	for _, s := range seen {
 		dst.Add(dst, s)
 	}
-	dst.Mul(dst.Div(dst, p.k), p.c)
+	p.tmp.Div(dst, p.k)
+	dst.Mul(p.tmp, p.c)
 }
 
 func PollardsKangaroo(pm *PollardMapper, p, g, a, b, y *big.Int) (*big.Int, error) {
@@ -52,7 +51,7 @@ func PollardsKangaroo(pm *PollardMapper, p, g, a, b, y *big.Int) (*big.Int, erro
 		t1, t2 big.Int
 	)
 
-	// The cache maps cacheKey to Exp(g, cacheKey, p).
+	// The cache maps cacheKey to Exp(g, cacheKey, p) for cacheKey in [0, k).
 	cache := make(map[uint64]*big.Int)
 	for i := big.NewInt(0); i.Cmp(pm.k) < 0; i.Add(i, big1) {
 		pm.F(i, &t1)
