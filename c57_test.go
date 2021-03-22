@@ -112,11 +112,19 @@ func TestPrimeFactorsLessThan_Large(t *testing.T) {
 	assert.ElementsMatch(t, got, want)
 }
 
+var testCaseSubgroupConfinementAttack = struct {
+	p, g, q string
+}{
+	p: "7199773997391911030609999317773941274322764333428698921736339643928346453700085358802973900485592910475480089726140708102474957429903531369589969318716771",
+	g: "4565356397095740655436854503483826832136106141639563487732438195343690437606117828318042418238184896212352329118608100083187535033402010599512641674644143",
+	q: "236234353446506858198510045061214171961",
+}
+
 func TestSubgroupConfinementAttack(t *testing.T) {
 	t.Parallel()
-	p := HelperBigIntFromString(t, "7199773997391911030609999317773941274322764333428698921736339643928346453700085358802973900485592910475480089726140708102474957429903531369589969318716771")
-	g := HelperBigIntFromString(t, "4565356397095740655436854503483826832136106141639563487732438195343690437606117828318042418238184896212352329118608100083187535033402010599512641674644143")
-	q := HelperBigIntFromString(t, "236234353446506858198510045061214171961")
+	p := HelperBigIntFromString(t, testCaseSubgroupConfinementAttack.p)
+	g := HelperBigIntFromString(t, testCaseSubgroupConfinementAttack.g)
+	q := HelperBigIntFromString(t, testCaseSubgroupConfinementAttack.q)
 	bob, err := NewC57Bob(p, g, q)
 	if err != nil {
 		t.Errorf("failed to create Bob client: %v", err)
@@ -128,5 +136,21 @@ func TestSubgroupConfinementAttack(t *testing.T) {
 	}
 	if got.Cmp(bob.key) != 0 {
 		t.Errorf("incorrect key: got %v, want %v", got, bob.key)
+	}
+}
+
+func BenchmarkSubgroupConfinementAttack(b *testing.B) {
+	p := HelperBigIntFromString(b, testCaseSubgroupConfinementAttack.p)
+	g := HelperBigIntFromString(b, testCaseSubgroupConfinementAttack.g)
+	q := HelperBigIntFromString(b, testCaseSubgroupConfinementAttack.q)
+	bob, err := NewC57Bob(p, g, q)
+	if err != nil {
+		b.Errorf("failed to create Bob client: %v", err)
+	}
+	var t big.Int
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_ = SubgroupConfinementAttack(bob, p, g, q, &t)
 	}
 }
