@@ -6,18 +6,22 @@ import (
 )
 
 type PollardMapper struct {
+	// Provided constants
 	k, c, p *big.Int
+	// Pre-allocation
+	tmp *big.Int
 }
 
 func NewPollardMapper(k, c, p *big.Int) (*PollardMapper, error) {
 	if k.Sign() != 1 || c.Sign() != 1 || p.Sign() != 1 {
 		return nil, fmt.Errorf("k, c, p must be positive: %v, %v, %v", k, c, p)
 	}
-	return &PollardMapper{k: k, c: c, p: p}, nil
+	return &PollardMapper{k: k, c: c, p: p, tmp: new(big.Int)}, nil
 }
 
 func (p PollardMapper) F(y, dst *big.Int) {
-	dst.Exp(big2, dst.Mod(y, p.k), p.p) // dst = 2^(y mod k) mod p
+	// Skip the mod p as an optimization.
+	dst.Exp(big2, p.tmp.Mod(y, p.k), nil) // dst = 2^(y mod k) mod p
 }
 
 func (p PollardMapper) N(dst *big.Int) {
