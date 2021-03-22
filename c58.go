@@ -48,6 +48,14 @@ func PollardsKangaroo(pm *PollardMapper, p, g, a, b, y *big.Int) (*big.Int, erro
 		t1, t2 big.Int
 	)
 
+	// The cache maps cacheKey to Exp(g, cacheKey, p).
+	cache := make(map[uint64]*big.Int)
+	for i := big.NewInt(0); i.Cmp(pm.k) < 0; i.Add(i, big1) {
+		pm.F(i, &t1)
+		t2.Exp(g, &t1, p)
+		cache[t1.Uint64()] = new(big.Int).Set(&t2)
+	}
+
 	pm.N(&n)
 
 	xT.SetInt64(0)  // xT = 0
@@ -61,7 +69,7 @@ func PollardsKangaroo(pm *PollardMapper, p, g, a, b, y *big.Int) (*big.Int, erro
 		t2.Add(&xT, &t1)
 		xT.Mod(&t2, p) // xT = xT + f(yT)
 
-		t2.Exp(g, &t1, p)
+		t2.Set(cache[t1.Uint64()]) // g^f(yT) mod p, cached
 		t1.Mul(&yT, &t2)
 		yT.Mod(&t1, p) // yT = yT * g^f(yT)
 	}
@@ -75,7 +83,7 @@ func PollardsKangaroo(pm *PollardMapper, p, g, a, b, y *big.Int) (*big.Int, erro
 		t2.Add(&xW, &t1)
 		xW.Mod(&t2, p) // xW = xW + f(yW)
 
-		t2.Exp(g, &t1, p)
+		t2.Set(cache[t1.Uint64()]) // g^f(yW) mod p, cached
 		t1.Mul(&yW, &t2)
 		yW.Mod(&t1, p) // yW = yW * g^f(yW)
 
