@@ -11,7 +11,7 @@ import (
 	"github.com/clfs/set8/crt"
 )
 
-// C57Bob represents Bob for challenge 57.
+// C57Bob represents Bob in challenge 57.
 type C57Bob struct {
 	p, g *big.Int // Group constants
 	key  *big.Int // Bob's secret key
@@ -32,9 +32,8 @@ func NewC57Bob(p, g, q *big.Int) (*C57Bob, error) {
 	}, nil
 }
 
-// Query accepts a public key without validating it.
-// Bob computes a shared secret and returns a message
-// and its MAC.
+// Query accepts a public key without validating it. Bob computes a shared
+// secret, then replies with a message and MAC.
 func (c *C57Bob) Query(h *big.Int) ([]byte, []byte, error) {
 	var sharedSecret big.Int
 	sharedSecret.Exp(h, c.key, c.p) // shared secret
@@ -45,9 +44,8 @@ func (c *C57Bob) Query(h *big.Int) ([]byte, []byte, error) {
 	return c.msg, tag, nil
 }
 
-// HMACSHA256 computes the HMAC-SHA256 of a message under a key.
-// If you're signing lots of messages with the same key, don't
-// use this - it'll be inefficient.
+// HMACSHA256 returns the HMAC-SHA256 of a message under a key. Don't use this
+// if you're signing lots of messages with the same key - it's inefficient.
 func HMACSHA256(key, msg []byte) ([]byte, error) {
 	mac := hmac.New(sha256.New, key)
 	_, err := mac.Write(msg)
@@ -57,9 +55,9 @@ func HMACSHA256(key, msg []byte) ([]byte, error) {
 	return mac.Sum(nil), nil
 }
 
-// PrimeFactorsLessThan returns all prime factors of n that are less
-// than bound. It returns nil if either n or bound is non-positive.
-// It's unoptimized, so try to use a small bound (< 1 million).
+// PrimeFactorsLessThan returns all prime factors of n less than bound. It
+// returns nil if n or bound are non-positive. It's also very unoptimized, so
+// use a small bound.
 func PrimeFactorsLessThan(n, bound *big.Int) []*big.Int {
 	if n.Sign() < 1 || bound.Sign() < 1 {
 		return nil
@@ -85,10 +83,8 @@ func PrimeFactorsLessThan(n, bound *big.Int) []*big.Int {
 // in dst.
 func SubgroupConfinementAttack(bob *C57Bob, p, g, q, dst *big.Int) error {
 	var (
-		// Invalid public key to force subgroups.
-		h big.Int
-		// We'll need this for the CRT step.
-		crtPairs []*crt.Pair
+		h        big.Int     // Invalid public key to force subgroups.
+		crtPairs []*crt.Pair // We'll need this for the CRT step.
 	)
 
 	dst.Div(dst.Sub(p, big1), q) // j, or (p - 1) // q
@@ -134,8 +130,8 @@ func SubgroupConfinementAttack(bob *C57Bob, p, g, q, dst *big.Int) error {
 
 	err := crt.Do(crtPairs, dst)
 	if err != nil {
-		// CRT can fail if there are no pairs, or if the divisors aren't
-		// pairwise coprime. Neither of these apply here.
+		// CRT fails if there are no pairs, or if the divisors aren't pairwise
+		// coprime. Neither of these apply here.
 		return fmt.Errorf("this should never happen")
 	}
 	return nil

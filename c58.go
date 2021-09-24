@@ -41,14 +41,10 @@ func (p PollardMapper) N(dst *big.Int) {
 
 func PollardsKangaroo(pm *PollardMapper, p, g, a, b, y *big.Int) (*big.Int, error) {
 	var (
-		// Tame kangaroo
-		xT, yT big.Int
-		// Wild kangaroo
-		xW, yW big.Int
-		// N value for the mapper
-		n big.Int
-		// Temporary values
-		t1, t2 big.Int
+		xT, yT big.Int // Tame kangaroo
+		xW, yW big.Int // Wild kangaroo
+		n      big.Int // N value for the mapper
+		t1, t2 big.Int // Temporary values
 	)
 
 	// The cache maps cacheKey to Exp(g, cacheKey, p) for cacheKey in [0, k).
