@@ -14,7 +14,6 @@ import (
 // C57Bob represents Bob for challenge 57.
 type C57Bob struct {
 	p, g *big.Int // Group constants
-	tmp  *big.Int // Pre-allocation
 	key  *big.Int // Bob's secret key
 	msg  []byte   // Bob's static message
 }
@@ -28,7 +27,6 @@ func NewC57Bob(p, g, q *big.Int) (*C57Bob, error) {
 	return &C57Bob{
 		p:   p,
 		g:   g,
-		tmp: new(big.Int),
 		key: key,
 		msg: []byte("crazy flamboyant for the rap enjoyment"),
 	}, nil
@@ -38,8 +36,9 @@ func NewC57Bob(p, g, q *big.Int) (*C57Bob, error) {
 // Bob computes a shared secret and returns a message
 // and its MAC.
 func (c *C57Bob) Query(h *big.Int) ([]byte, []byte, error) {
-	c.tmp.Exp(h, c.key, c.p) // shared secret
-	tag, err := HMACSHA256(c.tmp.Bytes(), c.msg)
+	var sharedSecret big.Int
+	sharedSecret.Exp(h, c.key, c.p) // shared secret
+	tag, err := HMACSHA256(sharedSecret.Bytes(), c.msg)
 	if err != nil {
 		return nil, nil, err
 	}
