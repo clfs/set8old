@@ -121,8 +121,8 @@ func SubgroupConfinementAttack(bob *C57Bob, p, g, q *big.Int) (*big.Int, error) 
 			// No need for hmac.Equal since we're the attacker.
 			if bytes.Equal(guess, tag) {
 				crtPairs = append(crtPairs, crt.Pair{
-					A: new(big.Int).Set(a),
-					N: new(big.Int).Set(n),
+					Remainder: new(big.Int).Set(a),
+					Divisor:   new(big.Int).Set(n),
 				})
 				break
 			}

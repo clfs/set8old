@@ -10,7 +10,7 @@ var One = big.NewInt(1)
 
 // Pair contains a remainder A and a divisor N.
 type Pair struct {
-	A, N *big.Int
+	Remainder, Divisor *big.Int
 }
 
 // Do does the CRT. It's adapted from
@@ -23,24 +23,24 @@ func Do(pairs []Pair) (*big.Int, error) {
 
 	var product big.Int // The product of all divisors.
 
-	product.Set(pairs[0].N)
+	product.Set(pairs[0].Divisor)
 	for _, p := range pairs[1:] {
-		product.Mul(&product, p.N)
+		product.Mul(&product, p.Divisor)
 	}
 
 	var x, q, s, z big.Int
 
 	for _, p := range pairs {
-		q.Div(&product, p.N)    // q = product / p.N
-		z.GCD(nil, &s, p.N, &q) // z = gcd(p.N, q), then s = z / b
+		q.Div(&product, p.Divisor)    // q = product / divisor
+		z.GCD(nil, &s, p.Divisor, &q) // z = gcd(divisor, q), then s = z / q
 
 		if z.Cmp(One) != 0 { // if z == 1
-			return nil, fmt.Errorf("divisor %d violates pairwise coprime requirement", p.N)
+			return nil, fmt.Errorf("divisor %d violates pairwise coprime requirement", p.Divisor)
 		}
 
-		s.Mul(&s, &q)  // s *= q
-		s.Mul(&s, p.A) // s *= p.A
-		x.Add(&x, &s)  // x += s
+		s.Mul(&s, &q)          // s *= q
+		s.Mul(&s, p.Remainder) // s *= remainder
+		x.Add(&x, &s)          // x += s
 	}
 
 	return x.Mod(&x, &product), nil // x %= product

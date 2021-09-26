@@ -7,9 +7,9 @@ import (
 
 func BenchmarkDo(b *testing.B) {
 	pairs := []Pair{
-		{A: big.NewInt(2), N: big.NewInt(3)},
-		{A: big.NewInt(3), N: big.NewInt(4)},
-		{A: big.NewInt(1), N: big.NewInt(5)},
+		{big.NewInt(2), big.NewInt(3)},
+		{big.NewInt(3), big.NewInt(4)},
+		{big.NewInt(1), big.NewInt(5)},
 	}
 	for i := 0; i < b.N; i++ {
 		_, _ = Do(pairs)
@@ -24,22 +24,22 @@ func TestDo(t *testing.T) {
 	}{
 		"one pair": {
 			pairs: []Pair{
-				{A: big.NewInt(3), N: big.NewInt(5)},
+				{big.NewInt(3), big.NewInt(5)},
 			},
 			want: big.NewInt(3),
 		},
 		"two pairs": {
 			pairs: []Pair{
-				{A: big.NewInt(1), N: big.NewInt(5)},
-				{A: big.NewInt(3), N: big.NewInt(7)},
+				{big.NewInt(1), big.NewInt(5)},
+				{big.NewInt(3), big.NewInt(7)},
 			},
 			want: big.NewInt(31),
 		},
 		"three pairs": {
 			pairs: []Pair{
-				{A: big.NewInt(2), N: big.NewInt(3)},
-				{A: big.NewInt(3), N: big.NewInt(4)},
-				{A: big.NewInt(1), N: big.NewInt(5)},
+				{big.NewInt(2), big.NewInt(3)},
+				{big.NewInt(3), big.NewInt(4)},
+				{big.NewInt(1), big.NewInt(5)},
 			},
 			want: big.NewInt(11),
 		},
