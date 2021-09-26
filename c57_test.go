@@ -130,8 +130,8 @@ func TestSubgroupConfinementAttack(t *testing.T) {
 		t.Errorf("failed to create Bob client: %v", err)
 	}
 
-	var got big.Int
-	if err := SubgroupConfinementAttack(bob, p, g, q, &got); err != nil {
+	got, err := SubgroupConfinementAttack(bob, p, g, q)
+	if err != nil {
 		t.Fatalf("failed to find Bob key: %v", err)
 	}
 	if got.Cmp(bob.key) != 0 {
@@ -147,10 +147,9 @@ func BenchmarkSubgroupConfinementAttack(b *testing.B) {
 	if err != nil {
 		b.Errorf("failed to create Bob client: %v", err)
 	}
-	var t big.Int
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_ = SubgroupConfinementAttack(bob, p, g, q, &t)
+		_, _ = SubgroupConfinementAttack(bob, p, g, q)
 	}
 }

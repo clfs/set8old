@@ -81,20 +81,21 @@ func PrimeFactorsLessThan(n, bound *big.Int) []*big.Int {
 // SubgroupConfinementAttack recovers Bob's secret key in a DHKE scheme, by way
 // of the Pohlig-Hellman algorithm for discrete logarithms. The result is stored
 // in dst.
-func SubgroupConfinementAttack(bob *C57Bob, p, g, q, dst *big.Int) error {
+func SubgroupConfinementAttack(bob *C57Bob, p, g, q *big.Int) (*big.Int, error) {
 	var (
-		h        big.Int     // Invalid public key to force subgroups.
-		crtPairs []*crt.Pair // We'll need this for the CRT step.
+		h        big.Int // Invalid public key to force subgroups.
+		dst      big.Int
+		crtPairs []crt.Pair // We'll need this for the CRT step.
 	)
 
 	dst.Div(dst.Sub(p, big1), q) // j, or (p - 1) // q
-	jFactors := PrimeFactorsLessThan(dst, big65536)
+	jFactors := PrimeFactorsLessThan(&dst, big65536)
 	for _, n := range jFactors {
 		// Pick an element h of order f.
 		for {
 			rnd, err := rand.Int(rand.Reader, dst.Sub(p, big1)) // [0, p-1)
 			if err != nil {
-				return err
+				return nil, err
 			}
 			rnd.Add(rnd, big1) // [1, p)
 
@@ -108,18 +109,18 @@ func SubgroupConfinementAttack(bob *C57Bob, p, g, q, dst *big.Int) error {
 		// Query Bob.
 		msg, tag, err := bob.Query(&h)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		// Brute-force Bob's secret key mod f.
 		for a := big.NewInt(0); a.Cmp(n) < 0; a.Add(a, big1) {
 			guess, err := HMACSHA256(dst.Exp(&h, a, p).Bytes(), msg)
 			if err != nil {
-				return err
+				return nil, err
 			}
 			// No need for hmac.Equal since we're the attacker.
 			if bytes.Equal(guess, tag) {
-				crtPairs = append(crtPairs, &crt.Pair{
+				crtPairs = append(crtPairs, crt.Pair{
 					A: new(big.Int).Set(a),
 					N: new(big.Int).Set(n),
 				})
@@ -128,11 +129,12 @@ func SubgroupConfinementAttack(bob *C57Bob, p, g, q, dst *big.Int) error {
 		}
 	}
 
-	err := crt.Do(crtPairs, dst)
+	res, err := crt.Do(crtPairs)
 	if err != nil {
 		// CRT fails if there are no pairs, or if the divisors aren't pairwise
 		// coprime. Neither of these apply here.
-		return fmt.Errorf("this should never happen")
+		return nil, fmt.Errorf("this should never happen")
 	}
-	return nil
+
+	return res, nil
 }

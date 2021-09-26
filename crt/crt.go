@@ -13,30 +13,35 @@ type Pair struct {
 	A, N *big.Int
 }
 
-// Do performs the CRT and stores the result in dst. It's adapted from
+// Do does the CRT. It's adapted from
 // https://rosettacode.org/wiki/Chinese_remainder_theorem#Go. It fails
-// if any two divisors are not coprime.
-func Do(pairs []*Pair, dst *big.Int) error {
+// if the divisors are not pairwise coprime.
+func Do(pairs []Pair) (*big.Int, error) {
 	if len(pairs) == 0 {
-		return fmt.Errorf("no pairs provided")
+		return nil, fmt.Errorf("no pairs provided")
 	}
 
-	dst.Set(pairs[0].N)
+	var product big.Int // The product of all divisors.
+
+	product.Set(pairs[0].N)
 	for _, p := range pairs[1:] {
-		dst.Mul(dst, p.N)
+		product.Mul(&product, p.N)
 	}
 
 	var x, q, s, z big.Int
 
 	for _, p := range pairs {
-		q.Div(dst, p.N)
-		z.GCD(nil, &s, p.N, &q)
-		if z.Cmp(One) != 0 {
-			return fmt.Errorf("divisor %d not coprime with other divisors", p.N)
+		q.Div(&product, p.N)    // q = product / p.N
+		z.GCD(nil, &s, p.N, &q) // z = gcd(p.N, q), then s = z / b
+
+		if z.Cmp(One) != 0 { // if z == 1
+			return nil, fmt.Errorf("divisor %d violates pairwise coprime requirement", p.N)
 		}
-		x.Add(&x, s.Mul(p.A, s.Mul(&s, &q)))
+
+		s.Mul(&s, &q)  // s *= q
+		s.Mul(&s, p.A) // s *= p.A
+		x.Add(&x, &s)  // x += s
 	}
 
-	dst.Mod(&x, dst)
-	return nil
+	return x.Mod(&x, &product), nil // x %= product
 }
