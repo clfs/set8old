@@ -108,10 +108,10 @@ func SubgroupConfinementAttack(bob *C57Bob, p, g, q *big.Int) (*big.Int, error) 
 				return nil, err
 			}
 
-			// Ensure h != 1.
-			h.Exp(rnd, j.Div(j.Sub(p, big1), r), p)
+			h.Exp(rnd, h.Div(h.Sub(p, big1), r), p) // h = rnd^((p-1)/r) mod p
+
 			if h.Cmp(big1) != 0 {
-				break
+				break // If h is 1, try again.
 			}
 		}
 
