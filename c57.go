@@ -82,7 +82,6 @@ func PrimeFactorsLessThan(n, bound *big.Int) []*big.Int {
 // of the Pohlig-Hellman algorithm for discrete logarithms.
 func SubgroupConfinementAttack(bob *C57Bob, p, g, q *big.Int) (*big.Int, error) {
 	var (
-		h        big.Int    // Invalid public key to force subgroups.
 		crtPairs []crt.Pair // We'll need this for the CRT step.
 	)
 
@@ -93,8 +92,10 @@ func SubgroupConfinementAttack(bob *C57Bob, p, g, q *big.Int) (*big.Int, error) 
 
 	jFactors := PrimeFactorsLessThan(&j, big65536)
 
-	for _, n := range jFactors {
-		// Pick an element h of order f.
+	for _, r := range jFactors {
+		var h big.Int // Holds an invalid public key.
+
+		// Find an invalid public key that's an element of order r.
 		for {
 			rnd, err := rand.Int(rand.Reader, j.Sub(p, big1)) // [0, p-1)
 			if err != nil {
@@ -102,8 +103,8 @@ func SubgroupConfinementAttack(bob *C57Bob, p, g, q *big.Int) (*big.Int, error) 
 			}
 			rnd.Add(rnd, big1) // [1, p)
 
-			// Try to pick h != 1.
-			h.Exp(rnd, j.Div(j.Sub(p, big1), n), p)
+			// Ensure h != 1.
+			h.Exp(rnd, j.Div(j.Sub(p, big1), r), p)
 			if h.Cmp(big1) != 0 {
 				break
 			}
@@ -116,7 +117,7 @@ func SubgroupConfinementAttack(bob *C57Bob, p, g, q *big.Int) (*big.Int, error) 
 		}
 
 		// Brute-force Bob's secret key mod f.
-		for a := big.NewInt(0); a.Cmp(n) < 0; a.Add(a, big1) {
+		for a := big.NewInt(0); a.Cmp(r) < 0; a.Add(a, big1) {
 			guess, err := HMACSHA256(j.Exp(&h, a, p).Bytes(), msg)
 			if err != nil {
 				return nil, err
@@ -125,7 +126,7 @@ func SubgroupConfinementAttack(bob *C57Bob, p, g, q *big.Int) (*big.Int, error) 
 			if bytes.Equal(guess, tag) {
 				crtPairs = append(crtPairs, crt.Pair{
 					Remainder: new(big.Int).Set(a),
-					Divisor:   new(big.Int).Set(n),
+					Divisor:   new(big.Int).Set(r),
 				})
 				break
 			}
