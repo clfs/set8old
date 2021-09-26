@@ -78,30 +78,35 @@ func PrimeFactorsLessThan(n, bound *big.Int) []*big.Int {
 	return res
 }
 
+// RandInt returns a uniform random value in [a, b). It panics if a >= b.
+func RandInt(a, b *big.Int) (*big.Int, error) {
+	tmp := new(big.Int).Sub(b, a)          // tmp = b - a
+	tmp, err := rand.Int(rand.Reader, tmp) // tmp in [0, b-a)
+	if err != nil {
+		return nil, err
+	}
+	tmp.Add(tmp, a) // tmp += a
+	return tmp, nil // tmp in [a, b)
+}
+
 // SubgroupConfinementAttack recovers Bob's secret key in a DHKE scheme, by way
 // of the Pohlig-Hellman algorithm for discrete logarithms.
 func SubgroupConfinementAttack(bob *C57Bob, p, g, q *big.Int) (*big.Int, error) {
-	var (
-		crtPairs []crt.Pair // We'll need this for the CRT step.
-	)
+	var crtPairs []crt.Pair // Remainder/divisor pairs for the CRT step.
 
 	var j big.Int // j = (p - 1) // q
-
 	j.Sub(p, big1)
 	j.Div(&j, q)
 
-	jFactors := PrimeFactorsLessThan(&j, big65536)
-
-	for _, r := range jFactors {
+	for _, r := range PrimeFactorsLessThan(&j, big65536) {
 		var h big.Int // Holds an invalid public key.
 
 		// Find an invalid public key that's an element of order r.
 		for {
-			rnd, err := rand.Int(rand.Reader, j.Sub(p, big1)) // [0, p-1)
+			rnd, err := RandInt(big1, p) // rnd in [1, p)
 			if err != nil {
 				return nil, err
 			}
-			rnd.Add(rnd, big1) // [1, p)
 
 			// Ensure h != 1.
 			h.Exp(rnd, j.Div(j.Sub(p, big1), r), p)
