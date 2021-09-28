@@ -5,7 +5,6 @@ import (
 	"crypto/hmac"
 	"crypto/rand"
 	"crypto/sha256"
-	"fmt"
 	"math/big"
 
 	"github.com/clfs/set8/crt"
@@ -32,9 +31,9 @@ func NewC57Bob(p, g, q *big.Int) (*C57Bob, error) {
 	}, nil
 }
 
-// Query accepts a public key without validating it. Bob computes a shared
+// Respond accepts a public key without validating it. Bob computes a shared
 // secret, then replies with a message and MAC.
-func (c *C57Bob) Query(h *big.Int) ([]byte, []byte, error) {
+func (c *C57Bob) Respond(h *big.Int) ([]byte, []byte, error) {
 	var sharedSecret big.Int
 	sharedSecret.Exp(h, c.key, c.p) // shared secret
 	tag, err := HMACSHA256(sharedSecret.Bytes(), c.msg)
@@ -92,7 +91,7 @@ func RandInt(a, b *big.Int) (*big.Int, error) {
 // SubgroupConfinementAttack recovers Bob's secret key in a DHKE scheme, by way
 // of the Pohlig-Hellman algorithm for discrete logarithms.
 func SubgroupConfinementAttack(bob *C57Bob, p, g, q *big.Int) (*big.Int, error) {
-	var crtPairs []crt.Pair // Remainder/divisor pairs for the CRT step.
+	var pairs []crt.Pair // Remainder/divisor pairs for the CRT step.
 
 	var j big.Int // j = (p - 1) // q
 	j.Sub(p, big1)
@@ -110,26 +109,31 @@ func SubgroupConfinementAttack(bob *C57Bob, p, g, q *big.Int) (*big.Int, error) 
 
 			h.Exp(rnd, h.Div(h.Sub(p, big1), r), p) // h = rnd^((p-1)/r) mod p
 
+			// Try until h != 1.
 			if h.Cmp(big1) != 0 {
-				break // If h is 1, try again.
+				break
 			}
 		}
 
 		// Query Bob.
-		msg, tag, err := bob.Query(&h)
+		msg, tag, err := bob.Respond(&h)
 		if err != nil {
 			return nil, err
 		}
 
 		// Brute-force Bob's secret key mod f.
 		for a := big.NewInt(0); a.Cmp(r) < 0; a.Add(a, big1) {
-			guess, err := HMACSHA256(j.Exp(&h, a, p).Bytes(), msg)
+			// Reuse j to save memory.
+			j.Exp(&h, a, p) // j = h^a mod p
+
+			guess, err := HMACSHA256(j.Bytes(), msg)
 			if err != nil {
 				return nil, err
 			}
+
 			// No need for hmac.Equal since we're the attacker.
 			if bytes.Equal(guess, tag) {
-				crtPairs = append(crtPairs, crt.Pair{
+				pairs = append(pairs, crt.Pair{
 					Remainder: new(big.Int).Set(a),
 					Divisor:   new(big.Int).Set(r),
 				})
@@ -138,12 +142,5 @@ func SubgroupConfinementAttack(bob *C57Bob, p, g, q *big.Int) (*big.Int, error) 
 		}
 	}
 
-	res, err := crt.Do(crtPairs)
-	if err != nil {
-		// CRT fails if there are no pairs, or if the divisors aren't pairwise
-		// coprime. Neither of these apply here.
-		return nil, fmt.Errorf("this should never happen")
-	}
-
-	return res, nil
+	return crt.Do(pairs)
 }
