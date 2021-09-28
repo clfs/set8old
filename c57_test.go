@@ -17,7 +17,7 @@ func bigInt(tb testing.TB, s string) *big.Int {
 }
 
 func BenchmarkPrimeFactorsLessThan(b *testing.B) {
-	// This benchmark uses the j parameter from challenge 57.
+	// The j value from challenge 57.
 	j := bigInt(b, "30477252323177606811760882179058908038824640750610513771646768011063128035873508507547741559514324673960576895059570")
 	bound := big.NewInt(65536) // 2^16
 	b.ResetTimer()
@@ -90,7 +90,7 @@ func TestPrimeFactorsLessThan(t *testing.T) {
 
 func TestPrimeFactorsLessThan_Large(t *testing.T) {
 	t.Parallel()
-	// This test uses the j parameter from challenge 57.
+	// The j value from challenge 57.
 	j := bigInt(t, "30477252323177606811760882179058908038824640750610513771646768011063128035873508507547741559514324673960576895059570")
 	bound := big.NewInt(65536) // 2^16
 	want := []*big.Int{
@@ -112,7 +112,7 @@ func TestPrimeFactorsLessThan_Large(t *testing.T) {
 	assert.ElementsMatch(t, got, want)
 }
 
-var testCaseSubgroupConfinementAttack = struct {
+var c57Params = struct {
 	p, g, q string
 }{
 	p: "7199773997391911030609999317773941274322764333428698921736339643928346453700085358802973900485592910475480089726140708102474957429903531369589969318716771",
@@ -122,30 +122,33 @@ var testCaseSubgroupConfinementAttack = struct {
 
 func TestChallenge57(t *testing.T) {
 	t.Parallel()
-	p := bigInt(t, testCaseSubgroupConfinementAttack.p)
-	g := bigInt(t, testCaseSubgroupConfinementAttack.g)
-	q := bigInt(t, testCaseSubgroupConfinementAttack.q)
+	p := bigInt(t, c57Params.p)
+	g := bigInt(t, c57Params.g)
+	q := bigInt(t, c57Params.q)
+
 	bob, err := NewC57Bob(p, g, q)
 	if err != nil {
-		t.Errorf("failed to create Bob client: %v", err)
+		t.Fatalf("failed to create Bob client: %v", err)
 	}
 
 	got, err := SubgroupConfinementAttack(bob, p, g, q)
 	if err != nil {
 		t.Fatalf("failed to find Bob key: %v", err)
 	}
+
 	if got.Cmp(bob.key) != 0 {
 		t.Errorf("incorrect key: got %v, want %v", got, bob.key)
 	}
 }
 
 func BenchmarkSubgroupConfinementAttack(b *testing.B) {
-	p := bigInt(b, testCaseSubgroupConfinementAttack.p)
-	g := bigInt(b, testCaseSubgroupConfinementAttack.g)
-	q := bigInt(b, testCaseSubgroupConfinementAttack.q)
+	p := bigInt(b, c57Params.p)
+	g := bigInt(b, c57Params.g)
+	q := bigInt(b, c57Params.q)
+
 	bob, err := NewC57Bob(p, g, q)
 	if err != nil {
-		b.Errorf("failed to create Bob client: %v", err)
+		b.Fatalf("failed to create Bob client: %v", err)
 	}
 
 	b.ResetTimer()
