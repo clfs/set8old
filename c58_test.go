@@ -37,13 +37,13 @@ var testCasesPollardsKangaroo = map[string]struct {
 
 func BenchmarkPollardsKangaroo(b *testing.B) {
 	var (
-		p  = HelperBigIntFromString(b, testCasesPollardsKangaroo["small"].p)
-		g  = HelperBigIntFromString(b, testCasesPollardsKangaroo["small"].g)
-		a  = HelperBigIntFromString(b, testCasesPollardsKangaroo["small"].a)
-		bb = HelperBigIntFromString(b, testCasesPollardsKangaroo["small"].b)
-		y  = HelperBigIntFromString(b, testCasesPollardsKangaroo["small"].y)
-		c  = HelperBigIntFromString(b, testCasesPollardsKangaroo["small"].c)
-		k  = HelperBigIntFromString(b, testCasesPollardsKangaroo["small"].k)
+		p  = bigInt(b, testCasesPollardsKangaroo["small"].p)
+		g  = bigInt(b, testCasesPollardsKangaroo["small"].g)
+		a  = bigInt(b, testCasesPollardsKangaroo["small"].a)
+		bb = bigInt(b, testCasesPollardsKangaroo["small"].b)
+		y  = bigInt(b, testCasesPollardsKangaroo["small"].y)
+		c  = bigInt(b, testCasesPollardsKangaroo["small"].c)
+		k  = bigInt(b, testCasesPollardsKangaroo["small"].k)
 		pm = NewPollardMapper(k, c, p)
 	)
 
@@ -55,10 +55,10 @@ func BenchmarkPollardsKangaroo(b *testing.B) {
 
 func BenchmarkPollardMapper_F(b *testing.B) {
 	var (
-		k = HelperBigIntFromString(b, testCasesPollardsKangaroo["small"].k)
-		c = HelperBigIntFromString(b, testCasesPollardsKangaroo["small"].c)
-		p = HelperBigIntFromString(b, testCasesPollardsKangaroo["small"].p)
-		y = HelperBigIntFromString(b, testCasesPollardsKangaroo["small"].y)
+		k = bigInt(b, testCasesPollardsKangaroo["small"].k)
+		c = bigInt(b, testCasesPollardsKangaroo["small"].c)
+		p = bigInt(b, testCasesPollardsKangaroo["small"].p)
+		y = bigInt(b, testCasesPollardsKangaroo["small"].y)
 		m = NewPollardMapper(k, c, p)
 		t big.Int
 	)
@@ -79,14 +79,14 @@ func TestPollardsKangaroo(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 			var (
-				p    = HelperBigIntFromString(t, tc.p)
-				g    = HelperBigIntFromString(t, tc.g)
-				a    = HelperBigIntFromString(t, tc.a)
-				b    = HelperBigIntFromString(t, tc.b)
-				y    = HelperBigIntFromString(t, tc.y)
-				c    = HelperBigIntFromString(t, tc.c)
-				k    = HelperBigIntFromString(t, tc.k)
-				want = HelperBigIntFromString(t, tc.want)
+				p    = bigInt(t, tc.p)
+				g    = bigInt(t, tc.g)
+				a    = bigInt(t, tc.a)
+				b    = bigInt(t, tc.b)
+				y    = bigInt(t, tc.y)
+				c    = bigInt(t, tc.c)
+				k    = bigInt(t, tc.k)
+				want = bigInt(t, tc.want)
 				pm   = NewPollardMapper(k, c, p)
 			)
 

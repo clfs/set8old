@@ -7,18 +7,18 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func HelperBigIntFromString(tb testing.TB, s string) *big.Int {
+func bigInt(tb testing.TB, s string) *big.Int {
 	tb.Helper()
 	n, ok := new(big.Int).SetString(s, 10)
 	if !ok {
-		tb.Errorf("cannot convert to big.Int: %s", s)
+		tb.Errorf("(big.Int).SetString: %s", s)
 	}
 	return n
 }
 
 func BenchmarkPrimeFactorsLessThan(b *testing.B) {
 	// This benchmark uses the j parameter from challenge 57.
-	j := HelperBigIntFromString(b, "30477252323177606811760882179058908038824640750610513771646768011063128035873508507547741559514324673960576895059570")
+	j := bigInt(b, "30477252323177606811760882179058908038824640750610513771646768011063128035873508507547741559514324673960576895059570")
 	bound := big.NewInt(65536) // 2^16
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -91,7 +91,7 @@ func TestPrimeFactorsLessThan(t *testing.T) {
 func TestPrimeFactorsLessThan_Large(t *testing.T) {
 	t.Parallel()
 	// This test uses the j parameter from challenge 57.
-	j := HelperBigIntFromString(t, "30477252323177606811760882179058908038824640750610513771646768011063128035873508507547741559514324673960576895059570")
+	j := bigInt(t, "30477252323177606811760882179058908038824640750610513771646768011063128035873508507547741559514324673960576895059570")
 	bound := big.NewInt(65536) // 2^16
 	want := []*big.Int{
 		big.NewInt(2),
@@ -120,11 +120,11 @@ var testCaseSubgroupConfinementAttack = struct {
 	q: "236234353446506858198510045061214171961",
 }
 
-func TestSubgroupConfinementAttack(t *testing.T) {
+func TestChallenge57(t *testing.T) {
 	t.Parallel()
-	p := HelperBigIntFromString(t, testCaseSubgroupConfinementAttack.p)
-	g := HelperBigIntFromString(t, testCaseSubgroupConfinementAttack.g)
-	q := HelperBigIntFromString(t, testCaseSubgroupConfinementAttack.q)
+	p := bigInt(t, testCaseSubgroupConfinementAttack.p)
+	g := bigInt(t, testCaseSubgroupConfinementAttack.g)
+	q := bigInt(t, testCaseSubgroupConfinementAttack.q)
 	bob, err := NewC57Bob(p, g, q)
 	if err != nil {
 		t.Errorf("failed to create Bob client: %v", err)
@@ -140,9 +140,9 @@ func TestSubgroupConfinementAttack(t *testing.T) {
 }
 
 func BenchmarkSubgroupConfinementAttack(b *testing.B) {
-	p := HelperBigIntFromString(b, testCaseSubgroupConfinementAttack.p)
-	g := HelperBigIntFromString(b, testCaseSubgroupConfinementAttack.g)
-	q := HelperBigIntFromString(b, testCaseSubgroupConfinementAttack.q)
+	p := bigInt(b, testCaseSubgroupConfinementAttack.p)
+	g := bigInt(b, testCaseSubgroupConfinementAttack.g)
+	q := bigInt(b, testCaseSubgroupConfinementAttack.q)
 	bob, err := NewC57Bob(p, g, q)
 	if err != nil {
 		b.Errorf("failed to create Bob client: %v", err)
